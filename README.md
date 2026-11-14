@@ -1,82 +1,58 @@
-# Performance Automation Foundation
+## performance-automation-foundation
 
-A Java 17 and Gatling foundation for repeatable performance tests, configurable local targets, and HTML reports.
+### Overview:
+* This project serves as a foundation for automated performance testing using Java and Gatling;
+* The example simulations exercise the QuickPizza API with login and authenticated pizza recommendation requests;
+* Gatling generates an HTML performance report for each simulation run.
 
-## Requirements
+### Requirements
+* Java (17 or above);
+* Maven (3.9 or above).
 
-- JDK 17 or newer
-- Maven 3.9 or newer
-- Docker, to run QuickPizza locally
+### Guidelines:
+* Target:
+  * Start QuickPizza locally with `docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest`;
+  * Create a QuickPizza account through the app or `POST /api/users`;
+  * Set `QUICKPIZZA_USERNAME` and `QUICKPIZZA_PASSWORD` to the account credentials;
+  * Simulations only accept `localhost`, `127.0.0.1`, or `::1` as the base URL.
+* Test Run:
+  * Run the one-user smoke simulation with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.QuickPizzaSmokeSimulation'`;
+  * Run 50 users ramped over two minutes with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.QuickPizzaLoadSimulation'`;
+  * Run the 50-user spike simulation with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.QuickPizzaSpikeSimulation'`;
+  * Each simulation checks for p95 response time below 500 ms and fewer than 1% failed requests.
+* Formatting:
+  * Run `mvn spotless:apply` to format Java sources;
+  * Run `mvn spotless:check` to check formatting without changing files.
 
-## Target
+### Scenario Coverage
+Each simulation exercises the same authenticated request flow:
+* **Login**: authenticate with the configured QuickPizza user and extract the response token;
+* **Pizza recommendation**: reuse the token to request a pizza recommendation and verify the response;
+* **Smoke**: run the flow with one virtual user;
+* **Load**: ramp up to 50 virtual users over two minutes;
+* **Spike**: start 50 virtual users at once.
 
-`test-api.k6.io` is no longer a suitable demo target: its project is deprecated, and the one-request check in November 2026 returned `302 Found` with a redirect to QuickPizza. The target list also recommends QuickPizza specifically for performance testing. These starter simulations therefore use QuickPizza's local API at `http://localhost:3333`.
+### Key Components
+* Gatling - Defines virtual users, HTTP requests, load profiles, checks, and performance assertions;
+* QuickPizza - A local demo application used as the controlled performance-test target;
+* Maven - Manages dependencies, compilation, simulation execution, and report generation;
+* Spotless - Formats Java sources with Google Java Format and checks formatting during Maven verification.
 
-The simulations only accept loopback base URLs (`localhost`, `127.0.0.1`, or `::1`), including the one-user smoke run. This keeps load traffic off shared public services.
+### Dependencies
+* `io.gatling`
+  * `gatling-core-java`
+  * `gatling-http-java`
+* `io.gatling.highcharts`
+  * `gatling-charts-highcharts`
 
-Start the local QuickPizza application in a separate terminal:
+### Documentation
+* Gatling - https://docs.gatling.io/
+* QuickPizza - https://github.com/grafana/quickpizza
 
-```shell
-docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest
-```
-
-Create a QuickPizza user through its UI or `POST /api/users`, then provide that account's credentials through environment variables:
-
-```powershell
-$env:QUICKPIZZA_USERNAME = "your-local-user"
-$env:QUICKPIZZA_PASSWORD = "your-local-password"
-```
-
-The simulations log in with the configured account, extract the token, and use it to request a pizza recommendation. Credentials are not stored in the repository or printed by the simulations.
-
-## Run simulations
-
-Run one virtual user through the login and pizza recommendation flow:
-
-```shell
-mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.QuickPizzaSmokeSimulation'
-```
-
-Ramp up to 50 users over two minutes against the local instance:
-
-```shell
-mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.QuickPizzaLoadSimulation'
-```
-
-Start 50 users at once against the local instance:
-
-```shell
-mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.QuickPizzaSpikeSimulation'
-```
-
-The base URL can be changed with `'-DbaseUrl=http://localhost:3333'`. Load and spike simulations reject non-loopback URLs. Each simulation asserts a p95 response time below 500 ms and fewer than 1% failed requests.
-
-Gatling writes an HTML report under `target/gatling/` for each run. These simulations are deliberately not run against the public QuickPizza host or the deprecated `test-api.k6.io`.
-
-## Allure compatibility
-
-Gatling does not produce Cucumber JSON: its results are virtual-user request timings, response-time distributions, and failures, rather than feature/scenario/step outcomes. Allure's documented Cucumber-JVM integration consumes Cucumber results, and there is no maintained Gatling adapter published on Maven Central. Converting Gatling runs into synthetic Cucumber scenarios would lose performance detail and misrepresent the results, so the Gatling HTML report remains the source of truth.
-
-If an Allure dashboard is needed later, an explicit Allure result per simulation with Gatling summary data attached is a better fit than Cucumber JSON. It would complement—not replace—the Gatling report.
-
-## Project layout
-
-```text
-src/test/java/io/github/diogobett/performance/
-  QuickPizzaSimulationSupport.java
-  QuickPizzaSmokeSimulation.java
-  QuickPizzaLoadSimulation.java
-  QuickPizzaSpikeSimulation.java
-```
-
-## Versions
-
-Gatling `3.16.0`, Gatling Maven Plugin `4.21.12`, and Maven Compiler Plugin `3.16.0` are the latest stable Maven Central releases checked for this setup.
-
-## References
-
-- [QuickPizza](https://github.com/grafana/quickpizza)
-- [QuickPizza local Docker instructions](https://github.com/grafana/quickpizza#run-locally-with-docker)
-- [Awesome Sites To Test On](https://github.com/BMayhew/awesome-sites-to-test-on)
-- [Gatling documentation](https://docs.gatling.io/)
-- [Allure Cucumber-JVM integration](https://allurereport.org/docs/cucumberjvm/)
+### FAQ / Troubleshooting
+* How do I change the target URL?
+  * Set `-DbaseUrl=http://localhost:3333` when running Gatling;
+  * Non-loopback URLs are rejected so performance traffic stays on a local target.
+* Where can I find Gatling's report?
+  * Locally, open the generated report under `target/gatling/`;
+  * In GitHub Actions, download the `gatling-report` workflow artifact.

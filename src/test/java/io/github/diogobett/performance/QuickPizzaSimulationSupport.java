@@ -1,9 +1,9 @@
 package io.github.diogobett.performance;
 
+import static io.gatling.javaapi.core.CoreDsl.StringBody;
 import static io.gatling.javaapi.core.CoreDsl.global;
 import static io.gatling.javaapi.core.CoreDsl.jsonPath;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
-import static io.gatling.javaapi.core.CoreDsl.StringBody;
 import static io.gatling.javaapi.http.HttpDsl.http;
 import static io.gatling.javaapi.http.HttpDsl.status;
 
@@ -70,8 +70,7 @@ final class QuickPizzaSimulationSupport {
 
   static Assertion[] performanceAssertions() {
     return new Assertion[] {
-      global().responseTime().percentile(95.0).lt(500),
-      global().failedRequests().percent().lt(1.0)
+      global().responseTime().percentile(95.0).lt(500), global().failedRequests().percent().lt(1.0)
     };
   }
 

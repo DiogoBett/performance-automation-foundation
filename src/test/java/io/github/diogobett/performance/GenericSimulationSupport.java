@@ -14,13 +14,22 @@ import io.gatling.javaapi.http.HttpProtocolBuilder;
 import java.net.URI;
 import java.util.Locale;
 
-final class QuickPizzaSimulationSupport {
+final class GenericSimulationSupport {
   private static final String DEFAULT_BASE_URL = "http://localhost:3333";
 
-  private QuickPizzaSimulationSupport() {}
+  private GenericSimulationSupport() {}
 
-  static String baseUrl() {
-    String baseUrl = System.getProperty("baseUrl", DEFAULT_BASE_URL);
+  static String baseUrl(boolean allowRemoteTarget) {
+    String environment = environment();
+
+    String baseUrl = System.getProperty("baseUrl");
+    if (baseUrl == null || baseUrl.isBlank()) {
+      if (!environment.equals("dev")) {
+        throw new IllegalStateException("Set -DbaseUrl for the " + environment + " environment.");
+      }
+      baseUrl = DEFAULT_BASE_URL;
+    }
+
     URI uri = URI.create(baseUrl);
     String scheme = uri.getScheme();
     String host = uri.getHost();
@@ -35,9 +44,13 @@ final class QuickPizzaSimulationSupport {
           "baseUrl must be an absolute HTTP(S) URL without credentials, query, or fragment.");
     }
 
-    if (!isLoopback(host)) {
+    if (environment.equals("dev") && !isLoopback(host)) {
+      throw new IllegalArgumentException("The dev environment must use a loopback URL.");
+    }
+
+    if (!allowRemoteTarget && (!environment.equals("dev") || !isLoopback(host))) {
       throw new IllegalArgumentException(
-          "Performance simulations are restricted to localhost, 127.0.0.1, or ::1.");
+          "Load and spike simulations are restricted to a loopback dev target.");
     }
 
     return baseUrl;
@@ -47,7 +60,26 @@ final class QuickPizzaSimulationSupport {
     return http.baseUrl(baseUrl).acceptHeader("application/json");
   }
 
-  static ScenarioBuilder pizzaRecommendationScenario(String name) {
+  static ScenarioBuilder scenarioForEnvironment(String name) {
+    if (environment().equals("dev")) {
+      return quickPizzaScenario(name);
+    }
+
+    String smokePath = requiredProperty("smokePath");
+    if (!smokePath.startsWith("/") || smokePath.startsWith("//")) {
+      throw new IllegalArgumentException(
+          "smokePath must be an absolute path on the configured host.");
+    }
+    int expectedStatus = Integer.parseInt(System.getProperty("expectedStatus", "200"));
+    if (expectedStatus < 100 || expectedStatus > 599) {
+      throw new IllegalArgumentException("expectedStatus must be between 100 and 599.");
+    }
+
+    return scenario(name)
+        .exec(http("Generic smoke GET").get(smokePath).check(status().is(expectedStatus)));
+  }
+
+  private static ScenarioBuilder quickPizzaScenario(String name) {
     String username = requiredCredential("QUICKPIZZA_USERNAME", "quickpizza.username");
     String password = requiredCredential("QUICKPIZZA_PASSWORD", "quickpizza.password");
 
@@ -66,6 +98,24 @@ final class QuickPizzaSimulationSupport {
                 .header("Content-Type", "application/json")
                 .body(StringBody("{}"))
                 .check(status().is(200), jsonPath("$.pizza.id").exists()));
+  }
+
+  private static String environment() {
+    String environment = System.getProperty("environment", "dev");
+    if (!environment.equals("dev")
+        && !environment.equals("preprod")
+        && !environment.equals("prod")) {
+      throw new IllegalArgumentException("environment must be dev, preprod, or prod.");
+    }
+    return environment;
+  }
+
+  private static String requiredProperty(String name) {
+    String value = System.getProperty(name);
+    if (value == null || value.isBlank()) {
+      throw new IllegalStateException("Set -D" + name + " for the selected environment.");
+    }
+    return value;
   }
 
   static Assertion[] performanceAssertions() {

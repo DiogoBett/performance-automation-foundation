@@ -1,0 +1,173 @@
+name: Run Automated Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 5'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - preprod
+          - prod
+      simulation:
+        description: Gatling simulation to run
+        required: true
+        type: choice
+        default: smoke
+        options:
+          - smoke
+          - load
+          - spike
+
+env:
+  MAVEN_CLI_OPTS: --batch-mode --no-transfer-progress
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Compile Code
+        run: mvn $MAVEN_CLI_OPTS clean test-compile
+
+      - name: Check Dependencies
+        run: mvn $MAVEN_CLI_OPTS dependency:resolve
+
+      - name: Spotless Check
+        run: mvn $MAVEN_CLI_OPTS spotless:check
+
+      - name: Validate Run Selection
+        env:
+          TEST_ENVIRONMENT: ${{ inputs.environment || 'dev' }}
+          SIMULATION: ${{ inputs.simulation || 'smoke' }}
+        run: |
+          case "$TEST_ENVIRONMENT" in
+            dev|preprod|prod) ;;
+            *) echo "Unsupported environment: $TEST_ENVIRONMENT" >&2; exit 1 ;;
+          esac
+          if [[ "$TEST_ENVIRONMENT" != "dev" && "$SIMULATION" != "smoke" ]]; then
+            echo "Load and spike simulations are only allowed in the local dev environment." >&2
+            exit 1
+          fi
+
+      - name: Simulation Setup (QuickPizza)
+        if: ${{ !inputs.environment || inputs.environment == 'dev' }}
+        run: |
+          docker run --detach --rm --name quickpizza -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest
+          echo "TEST_BASE_URL=http://localhost:3333" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3333/ready; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs quickpizza
+          echo "QuickPizza did not become ready in time." >&2
+          exit 1
+
+      - name: Simulation Authentication (QuickPizza)
+        if: ${{ !inputs.environment || inputs.environment == 'dev' }}
+        run: |
+          username="ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          password="$(openssl rand -hex 16)"
+          echo "QUICKPIZZA_USERNAME=$username" >> "$GITHUB_ENV"
+          echo "QUICKPIZZA_PASSWORD=$password" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 10); do
+            if curl --fail --silent --show-error \
+              --request POST http://localhost:3333/api/users \
+              --header 'Content-Type: application/json' \
+              --data "{\"username\":\"$username\",\"password\":\"$password\"}" \
+              --output /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Could not create the QuickPizza CI test user." >&2
+          exit 1
+
+      - name: Configure External Target
+        if: ${{ inputs.environment == 'preprod' || inputs.environment == 'prod' }}
+        env:
+          TEST_ENVIRONMENT: ${{ inputs.environment }}
+          PREPROD_BASE_URL: ${{ vars.PREPROD_BASE_URL }}
+          PREPROD_SMOKE_PATH: ${{ vars.PREPROD_SMOKE_PATH }}
+          PREPROD_EXPECTED_STATUS: ${{ vars.PREPROD_EXPECTED_STATUS }}
+          PROD_BASE_URL: ${{ vars.PROD_BASE_URL }}
+          PROD_SMOKE_PATH: ${{ vars.PROD_SMOKE_PATH }}
+          PROD_EXPECTED_STATUS: ${{ vars.PROD_EXPECTED_STATUS }}
+        run: |
+          case "$TEST_ENVIRONMENT" in
+            preprod)
+              base_url="$PREPROD_BASE_URL"
+              smoke_path="$PREPROD_SMOKE_PATH"
+              expected_status="${PREPROD_EXPECTED_STATUS:-200}"
+              ;;
+            prod)
+              base_url="$PROD_BASE_URL"
+              smoke_path="$PROD_SMOKE_PATH"
+              expected_status="${PROD_EXPECTED_STATUS:-200}"
+              ;;
+          esac
+          if [[ -z "$base_url" || -z "$smoke_path" ]]; then
+            echo "Configure the target URL and smoke path as repository variables." >&2
+            exit 1
+          fi
+          echo "TEST_BASE_URL=$base_url" >> "$GITHUB_ENV"
+          echo "TEST_SMOKE_PATH=$smoke_path" >> "$GITHUB_ENV"
+          echo "TEST_EXPECTED_STATUS=$expected_status" >> "$GITHUB_ENV"
+
+      - name: Run Automated Tests
+        env:
+          TEST_ENVIRONMENT: ${{ inputs.environment || 'dev' }}
+          SIMULATION: ${{ inputs.simulation || 'smoke' }}
+        run: |
+          case "$SIMULATION" in
+            smoke) simulation_class=io.github.diogobett.performance.GenericSmokeSimulation ;;
+            load) simulation_class=io.github.diogobett.performance.GenericLoadSimulation ;;
+            spike) simulation_class=io.github.diogobett.performance.GenericSpikeSimulation ;;
+            *) echo "Unsupported simulation: $SIMULATION" >&2; exit 1 ;;
+          esac
+          mvn $MAVEN_CLI_OPTS gatling:test \
+            "-Dgatling.simulationClass=$simulation_class" \
+            "-Denvironment=$TEST_ENVIRONMENT" \
+            "-DbaseUrl=$TEST_BASE_URL" \
+            "-DsmokePath=$TEST_SMOKE_PATH" \
+            "-DexpectedStatus=$TEST_EXPECTED_STATUS"
+
+      - name: Test Report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gatling-report-${{ inputs.environment || 'dev' }}-${{ github.run_id }}
+          path: target/gatling/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Stop QuickPizza
+        if: ${{ always() && (!inputs.environment || inputs.environment == 'dev') }}
+        run: |
+          if docker inspect quickpizza >/dev/null 2>&1; then
+            docker logs quickpizza
+            docker stop quickpizza
+          fi

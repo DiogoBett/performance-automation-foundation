@@ -6,10 +6,16 @@ final class Constants {
   static final String PROD_ENVIRONMENT = "prod";
 
   static final String DEFAULT_BASE_URL = "https://quickpizza.grafana.com";
+  static final String QUICKPIZZA_HOST = "quickpizza.grafana.com";
   static final String DEFAULT_SMOKE_PATH = "/ready";
   static final String DEFAULT_EXPECTED_STATUS = "200";
   static final int FIRST_HTTP_STATUS = 100;
   static final int LAST_HTTP_STATUS = 599;
+  static final int PERFORMANCE_VIRTUAL_USERS = 5;
+  static final int LOAD_RAMP_DURATION_SECONDS = 5;
+  static final int LOAD_REQUESTS_PER_USER = 15;
+  static final int SPIKE_REQUESTS_PER_USER = 1;
+  static final int REQUEST_PAUSE_SECONDS = 1;
 
   static final String ENVIRONMENT_PROPERTY = "environment";
   static final String BASE_URL_PROPERTY = "baseUrl";
@@ -37,8 +43,8 @@ final class Constants {
   static final String ERROR_INVALID_BASE_URL =
       BASE_URL_PROPERTY
           + " must be an absolute HTTP(S) URL without credentials, query, or fragment.";
-  static final String ERROR_LOAD_LOOPBACK_REQUIRED =
-      "Load and spike simulations are restricted to a loopback target.";
+  static final String ERROR_PERFORMANCE_TARGET_REQUIRED =
+      "Load and spike simulations are restricted to DEV QuickPizza or a loopback target.";
   static final String ERROR_SMOKE_PATH_REQUIRED =
       "Set -D" + SMOKE_PATH_PROPERTY + " for the selected environment.";
   static final String ERROR_INVALID_SMOKE_PATH =

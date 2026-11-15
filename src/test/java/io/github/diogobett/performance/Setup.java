@@ -1,5 +1,6 @@
 package io.github.diogobett.performance;
 
+import static io.gatling.javaapi.core.CoreDsl.exec;
 import static io.gatling.javaapi.core.CoreDsl.global;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
 import static io.gatling.javaapi.http.HttpDsl.http;
@@ -9,20 +10,13 @@ import io.gatling.javaapi.core.Assertion;
 import io.gatling.javaapi.core.ScenarioBuilder;
 import io.gatling.javaapi.http.HttpProtocolBuilder;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Locale;
 
 final class Setup {
   private Setup() {}
 
   static String baseUrl() {
-    return baseUrl(false);
-  }
-
-  static String loopbackBaseUrl() {
-    return baseUrl(true);
-  }
-
-  private static String baseUrl(boolean requireLoopback) {
     String environment = environment();
     String baseUrl = System.getProperty(Constants.BASE_URL_PROPERTY);
 
@@ -46,9 +40,17 @@ final class Setup {
       throw new IllegalArgumentException(Constants.ERROR_INVALID_BASE_URL);
     }
 
-    if (requireLoopback
-        && (!environment.equals(Constants.DEFAULT_ENVIRONMENT) || !isLoopback(host))) {
-      throw new IllegalArgumentException(Constants.ERROR_LOAD_LOOPBACK_REQUIRED);
+    return baseUrl;
+  }
+
+  static String performanceBaseUrl() {
+    String baseUrl = baseUrl();
+    URI uri = URI.create(baseUrl);
+    String host = uri.getHost();
+
+    if (!environment().equals(Constants.DEFAULT_ENVIRONMENT)
+        || (!isLoopback(host) && !host.equalsIgnoreCase(Constants.QUICKPIZZA_HOST))) {
+      throw new IllegalArgumentException(Constants.ERROR_PERFORMANCE_TARGET_REQUIRED);
     }
 
     return baseUrl;
@@ -59,14 +61,35 @@ final class Setup {
   }
 
   static ScenarioBuilder smokeScenario(String name) {
-    return requestScenario(name, Constants.SCENARIO_SMOKE_GET);
+    return scenario(name)
+        .exec(
+            http(Constants.SCENARIO_SMOKE_GET)
+                .get(smokePath())
+                .check(status().is(expectedStatus())));
   }
 
   static ScenarioBuilder requestScenario(String name) {
-    return requestScenario(name, Constants.GENERIC_REQUEST_NAME);
+    return repeatedRequestScenario(name, Constants.SPIKE_REQUESTS_PER_USER);
   }
 
-  private static ScenarioBuilder requestScenario(String name, String requestName) {
+  static ScenarioBuilder loadScenario(String name) {
+    return repeatedRequestScenario(name, Constants.LOAD_REQUESTS_PER_USER);
+  }
+
+  private static ScenarioBuilder repeatedRequestScenario(String name, int requestCount) {
+    String smokePath = smokePath();
+    int expectedStatus = expectedStatus();
+
+    return scenario(name)
+        .repeat(requestCount)
+        .on(
+            exec(http(Constants.GENERIC_REQUEST_NAME)
+                    .get(smokePath)
+                    .check(status().is(expectedStatus)))
+                .pause(Duration.ofSeconds(Constants.REQUEST_PAUSE_SECONDS)));
+  }
+
+  private static String smokePath() {
     String smokePath = System.getProperty(Constants.SMOKE_PATH_PROPERTY);
     if (smokePath == null || smokePath.isBlank()) {
       if (environment().equals(Constants.DEFAULT_ENVIRONMENT)) {
@@ -80,6 +103,10 @@ final class Setup {
       throw new IllegalArgumentException(Constants.ERROR_INVALID_SMOKE_PATH);
     }
 
+    return smokePath;
+  }
+
+  private static int expectedStatus() {
     int expectedStatus =
         Integer.parseInt(
             System.getProperty(
@@ -89,7 +116,7 @@ final class Setup {
       throw new IllegalArgumentException(Constants.ERROR_INVALID_EXPECTED_STATUS);
     }
 
-    return scenario(name).exec(http(requestName).get(smokePath).check(status().is(expectedStatus)));
+    return expectedStatus;
   }
 
   static Assertion[] performanceAssertions() {

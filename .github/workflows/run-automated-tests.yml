@@ -105,7 +105,7 @@ jobs:
               "$simulation" "$status" "$started_at" "$stopped_at" >> "$results_file"
           done
           if ! mvn $MAVEN_CLI_OPTS exec:java \
-              "-Dexec.args=$results_file target/allure-results target/cucumber-report/performance-scenarios.json"; then
+              "-Dexec.args=$results_file target/allure-results target/generated-report.json"; then
             failed=1
           fi
           exit "$failed"
@@ -123,6 +123,6 @@ jobs:
             target/gatling/
             target/allure-results/
             target/allure-report/
-            target/cucumber-report/
+            target/generated-report.json
           if-no-files-found: warn
           retention-days: 7

@@ -40,7 +40,7 @@ public final class Constants {
   public static final String GENERIC_REQUEST_NAME = "Generic GET";
 
   public static final String REPORT_INPUT_USAGE =
-      "Usage: Report <simulation-results.tsv> <allure-results-directory> <cucumber-report-file>";
+      "Usage: Report <simulation-results.tsv> <allure-results-directory> <generated-report-file>";
   public static final String REPORT_STATUS_PASSED = "passed";
   public static final String REPORT_STATUS_FAILED = "failed";
   public static final String REPORT_RESULT_FILE_SUFFIX = "-result.json";

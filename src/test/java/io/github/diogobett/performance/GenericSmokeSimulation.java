@@ -6,10 +6,10 @@ import io.gatling.javaapi.core.Simulation;
 
 public class GenericSmokeSimulation extends Simulation {
   {
-    String baseUrl = GenericSimulationSupport.baseUrl(true);
+    String baseUrl = Setup.baseUrl();
 
-    setUp(GenericSimulationSupport.scenarioForEnvironment("Smoke").injectOpen(atOnceUsers(1)))
-        .protocols(GenericSimulationSupport.httpProtocol(baseUrl))
-        .assertions(GenericSimulationSupport.performanceAssertions());
+    setUp(Setup.smokeScenario(Constants.SCENARIO_NAME_SMOKE).injectOpen(atOnceUsers(1)))
+        .protocols(Setup.httpProtocol(baseUrl))
+        .assertions(Setup.smokeAssertions());
   }
 }

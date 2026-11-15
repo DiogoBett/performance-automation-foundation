@@ -7,12 +7,12 @@ import java.time.Duration;
 
 public class GenericLoadSimulation extends Simulation {
   {
-    String baseUrl = GenericSimulationSupport.baseUrl(false);
+    String baseUrl = Setup.loopbackBaseUrl();
 
     setUp(
-            GenericSimulationSupport.scenarioForEnvironment("Load")
+            Setup.requestScenario(Constants.SCENARIO_NAME_LOAD)
                 .injectOpen(rampUsers(50).during(Duration.ofMinutes(2))))
-        .protocols(GenericSimulationSupport.httpProtocol(baseUrl))
-        .assertions(GenericSimulationSupport.performanceAssertions());
+        .protocols(Setup.httpProtocol(baseUrl))
+        .assertions(Setup.performanceAssertions());
   }
 }

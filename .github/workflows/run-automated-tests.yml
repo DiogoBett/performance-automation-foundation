@@ -81,27 +81,40 @@ jobs:
           TEST_ENVIRONMENT: ${{ inputs.environment || 'dev' }}
         run: |
           failed=0
+          results_file="$RUNNER_TEMP/allure-simulation-results.tsv"
+          : > "$results_file"
           for simulation in \
-            io.github.diogobett.performance.GenericSmokeSimulation \
-            io.github.diogobett.performance.GenericLoadSimulation \
-            io.github.diogobett.performance.GenericSpikeSimulation
+            GenericSmokeSimulation \
+            GenericLoadSimulation \
+            GenericSpikeSimulation
           do
-            if ! mvn $MAVEN_CLI_OPTS gatling:test \
-                "-Dgatling.simulationClass=$simulation" \
+            started_at="$(date +%s%3N)"
+            if mvn $MAVEN_CLI_OPTS gatling:test \
+                "-Dgatling.simulationClass=io.github.diogobett.performance.$simulation" \
                 "-Denvironment=$TEST_ENVIRONMENT" \
                 "-DbaseUrl=$TEST_BASE_URL" \
                 "-DsmokePath=$TEST_SMOKE_PATH" \
                 "-DexpectedStatus=$TEST_EXPECTED_STATUS"; then
+              status="passed"
+            else
+              status="failed"
               failed=1
             fi
+            stopped_at="$(date +%s%3N)"
+            printf '%s\t%s\t%s\t%s\n' \
+              "$simulation" "$status" "$started_at" "$stopped_at" >> "$results_file"
           done
+          python3 .github/scripts/generate_allure_results.py \
+            "$results_file" target/allure-results
           exit "$failed"
 
       - name: Test Report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: gatling-report-${{ inputs.environment || 'dev' }}-${{ github.run_id }}
-          path: target/gatling/
+          name: test_report
+          path: |
+            target/gatling/
+            target/allure-results/
           if-no-files-found: warn
           retention-days: 7

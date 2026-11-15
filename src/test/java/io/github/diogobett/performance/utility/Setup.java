@@ -1,4 +1,4 @@
-package io.github.diogobett.performance;
+package io.github.diogobett.performance.utility;
 
 import static io.gatling.javaapi.core.CoreDsl.exec;
 import static io.gatling.javaapi.core.CoreDsl.global;
@@ -13,10 +13,10 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Locale;
 
-final class Setup {
+public final class Setup {
   private Setup() {}
 
-  static String baseUrl() {
+  public static String baseUrl() {
     String environment = environment();
     String baseUrl = System.getProperty(Constants.BASE_URL_PROPERTY);
 
@@ -43,7 +43,7 @@ final class Setup {
     return baseUrl;
   }
 
-  static String performanceBaseUrl() {
+  public static String performanceBaseUrl() {
     String baseUrl = baseUrl();
     URI uri = URI.create(baseUrl);
     String host = uri.getHost();
@@ -56,11 +56,11 @@ final class Setup {
     return baseUrl;
   }
 
-  static HttpProtocolBuilder httpProtocol(String baseUrl) {
+  public static HttpProtocolBuilder httpProtocol(String baseUrl) {
     return http.baseUrl(baseUrl);
   }
 
-  static ScenarioBuilder smokeScenario(String name) {
+  public static ScenarioBuilder smokeScenario(String name) {
     return scenario(name)
         .exec(
             http(Constants.SCENARIO_SMOKE_GET)
@@ -68,11 +68,11 @@ final class Setup {
                 .check(status().is(expectedStatus())));
   }
 
-  static ScenarioBuilder requestScenario(String name) {
+  public static ScenarioBuilder requestScenario(String name) {
     return repeatedRequestScenario(name, Constants.SPIKE_REQUESTS_PER_USER);
   }
 
-  static ScenarioBuilder loadScenario(String name) {
+  public static ScenarioBuilder loadScenario(String name) {
     return repeatedRequestScenario(name, Constants.LOAD_REQUESTS_PER_USER);
   }
 
@@ -119,13 +119,13 @@ final class Setup {
     return expectedStatus;
   }
 
-  static Assertion[] performanceAssertions() {
+  public static Assertion[] performanceAssertions() {
     return new Assertion[] {
       global().responseTime().percentile(95.0).lt(500), global().failedRequests().percent().lt(1.0)
     };
   }
 
-  static Assertion[] smokeAssertions() {
+  public static Assertion[] smokeAssertions() {
     return new Assertion[] {global().failedRequests().percent().lt(1.0)};
   }
 

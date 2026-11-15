@@ -90,7 +90,7 @@ jobs:
           do
             started_at="$(date +%s%3N)"
             if mvn $MAVEN_CLI_OPTS gatling:test \
-                "-Dgatling.simulationClass=io.github.diogobett.performance.$simulation" \
+                "-Dgatling.simulationClass=io.github.diogobett.performance.simulations.$simulation" \
                 "-Denvironment=$TEST_ENVIRONMENT" \
                 "-DbaseUrl=$TEST_BASE_URL" \
                 "-DsmokePath=$TEST_SMOKE_PATH" \

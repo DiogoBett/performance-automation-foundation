@@ -1,4 +1,4 @@
-package io.github.diogobett.performance;
+package io.github.diogobett.performance.utility;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

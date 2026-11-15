@@ -1,8 +1,10 @@
-package io.github.diogobett.performance;
+package io.github.diogobett.performance.simulations;
 
 import static io.gatling.javaapi.core.CoreDsl.rampUsers;
 
 import io.gatling.javaapi.core.Simulation;
+import io.github.diogobett.performance.utility.Constants;
+import io.github.diogobett.performance.utility.Setup;
 import java.time.Duration;
 
 public class GenericLoadSimulation extends Simulation {

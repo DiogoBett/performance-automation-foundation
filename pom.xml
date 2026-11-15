@@ -85,7 +85,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>${exec-maven-plugin.version}</version>
                 <configuration>
-                    <mainClass>io.github.diogobett.performance.Report</mainClass>
+                    <mainClass>io.github.diogobett.performance.utility.Report</mainClass>
                     <classpathScope>test</classpathScope>
                 </configuration>
             </plugin>

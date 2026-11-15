@@ -10,9 +10,9 @@
 
 ### Guidelines:
 * Test Run:
-  * Run the one-user public QuickPizza smoke simulation with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.GenericSmokeSimulation'`;
-  * Run the five-user QuickPizza load simulation with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.GenericLoadSimulation'`;
-  * Run the five-user QuickPizza spike simulation with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.GenericSpikeSimulation'`;
+  * Run the one-user public QuickPizza smoke simulation with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.simulations.GenericSmokeSimulation'`;
+  * Run the five-user QuickPizza load simulation with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.simulations.GenericLoadSimulation'`;
+  * Run the five-user QuickPizza spike simulation with `mvn gatling:test '-Dgatling.simulationClass=io.github.diogobett.performance.simulations.GenericSpikeSimulation'`;
   * The `dev` environment uses the public QuickPizza endpoint for all three small-scale scenarios;
   * The `preprod` and `prod` environments are placeholders and are not configured.
 * Formatting:

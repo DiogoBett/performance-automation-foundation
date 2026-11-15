@@ -19,6 +19,8 @@
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
         <spotless.version>3.11.0</spotless.version>
         <google-java-format.version>1.27.0</google-java-format.version>
+        <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
+        <allure-maven-plugin.version>3.1.0</allure-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -77,6 +79,24 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <configuration>
+                    <mainClass>io.github.diogobett.performance.Report</mainClass>
+                    <classpathScope>test</classpathScope>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>${allure-maven-plugin.version}</version>
+                <configuration>
+                    <resultsDirectory>${project.build.directory}/allure-results</resultsDirectory>
+                    <reportDirectory>${project.build.directory}/allure-report</reportDirectory>
+                </configuration>
             </plugin>
         </plugins>
     </build>

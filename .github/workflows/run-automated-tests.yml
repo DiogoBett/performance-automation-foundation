@@ -104,9 +104,15 @@ jobs:
             printf '%s\t%s\t%s\t%s\n' \
               "$simulation" "$status" "$started_at" "$stopped_at" >> "$results_file"
           done
-          python3 .github/scripts/generate_allure_results.py \
-            "$results_file" target/allure-results
+          if ! mvn $MAVEN_CLI_OPTS exec:java \
+              "-Dexec.args=$results_file target/allure-results target/cucumber-report/performance-scenarios.json"; then
+            failed=1
+          fi
           exit "$failed"
+
+      - name: Allure Report
+        if: always()
+        run: mvn $MAVEN_CLI_OPTS allure:report
 
       - name: Test Report
         if: always()
@@ -116,5 +122,7 @@ jobs:
           path: |
             target/gatling/
             target/allure-results/
+            target/allure-report/
+            target/cucumber-report/
           if-no-files-found: warn
           retention-days: 7

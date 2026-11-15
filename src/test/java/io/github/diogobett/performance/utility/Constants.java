@@ -52,7 +52,13 @@ public final class Constants {
       List.of(SCENARIO_NAME_SMOKE, SCENARIO_NAME_LOAD, SCENARIO_NAME_SPIKE);
   public static final String REPORT_FEATURE_URI_SUFFIX = ".feature";
   public static final String REPORT_SCENARIO_TYPE = "scenario";
-  public static final String REPORT_STEP_NAME_FORMAT = "Gatling %s simulation";
+  public static final String REPORT_BASE_URL_ENV = "TEST_BASE_URL";
+  public static final String REPORT_SMOKE_PATH_ENV = "TEST_SMOKE_PATH";
+  public static final String REPORT_SMOKE_STEP_FORMAT = "Sending 1 user to %s";
+  public static final String REPORT_LOAD_STEP_FORMAT =
+      "Ramping %d users over %d seconds to %s (%d requests per user)";
+  public static final String REPORT_SPIKE_STEP_FORMAT =
+      "Sending %d users at once to %s (%d request per user)";
   public static final String REPORT_FAILURE_MESSAGE =
       "Gatling simulation failed. See the Gatling HTML report and CI logs.";
   public static final String REPORT_CUCUMBER_FAILURE_MESSAGE_FORMAT = "%s: %s";
@@ -65,6 +71,7 @@ public final class Constants {
   public static final String REPORT_UNSUPPORTED_STATUS_ERROR = "Unsupported scenario status: %s";
   public static final String REPORT_INVALID_TIMESTAMPS_ERROR = "Invalid timestamps for %s";
   public static final String REPORT_MISSING_SIMULATIONS_ERROR = "Missing simulation results: %s";
+  public static final String REPORT_UNSUPPORTED_SCENARIO_ERROR = "Unsupported report scenario: %s";
   public static final String REPORT_ERROR_MESSAGE_FIELD_FORMAT = ",\n      \"%s\": \"%s\"";
   public static final String REPORT_ALLURE_RESULT_TEMPLATE =
       """
@@ -77,9 +84,18 @@ public final class Constants {
         "start": %d,
         "stop": %d,
         "labels": [
-          {"name": "suite", "value": "Performance Scenarios"},
+          {"name": "suite", "value": "%s"},
           {"name": "framework", "value": "Gatling"},
           {"name": "language", "value": "Java"}
+        ],
+        "steps": [
+          {
+            "name": "%s",
+            "status": "%s",
+            "stage": "finished",
+            "start": %d,
+            "stop": %d
+          }
         ]%s
       }
       """;

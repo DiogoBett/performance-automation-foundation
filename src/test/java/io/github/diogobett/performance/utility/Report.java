@@ -86,11 +86,17 @@ public final class Report {
               ? Constants.REPORT_ALLURE_FAILURE_DETAILS_TEMPLATE.formatted(
                   Constants.REPORT_FAILURE_MESSAGE)
               : Constants.REPORT_EMPTY_STRING;
+      String stepName = reportStepName(result);
       String allureResult =
           Constants.REPORT_ALLURE_RESULT_TEMPLATE.formatted(
               uuid,
               result.name(),
               result.simulation(),
+              result.status(),
+              result.start(),
+              result.stop(),
+              result.name(),
+              stepName,
               result.status(),
               result.start(),
               result.stop(),
@@ -123,7 +129,7 @@ public final class Report {
               result.name(),
               featureId + Constants.REPORT_FEATURE_ID_SEPARATOR + featureId,
               Instant.ofEpochMilli(result.start()),
-              Constants.REPORT_STEP_NAME_FORMAT.formatted(result.name()),
+              reportStepName(result),
               result.status(),
               durationNanos,
               failureMessage);
@@ -138,6 +144,43 @@ public final class Report {
         Constants.REPORT_CUCUMBER_REPORT_TEMPLATE.formatted(
             String.join(Constants.REPORT_CUCUMBER_FEATURE_SEPARATOR, features)),
         StandardCharsets.UTF_8);
+  }
+
+  private static String reportStepName(SimulationResult result) {
+    String baseUrl = configuredValue(Constants.BASE_URL_PROPERTY, Constants.REPORT_BASE_URL_ENV);
+    String smokePath =
+        configuredValue(Constants.SMOKE_PATH_PROPERTY, Constants.REPORT_SMOKE_PATH_ENV);
+    if (baseUrl == null || baseUrl.isBlank()) {
+      baseUrl = Constants.DEFAULT_BASE_URL;
+    }
+    if (smokePath == null || smokePath.isBlank()) {
+      smokePath = Constants.DEFAULT_SMOKE_PATH;
+    }
+    String target =
+        baseUrl.endsWith(Constants.PATH_SEPARATOR)
+            ? baseUrl.substring(0, baseUrl.length() - 1) + smokePath
+            : baseUrl + smokePath;
+
+    return switch (result.name()) {
+      case Constants.SCENARIO_NAME_SMOKE -> Constants.REPORT_SMOKE_STEP_FORMAT.formatted(target);
+      case Constants.SCENARIO_NAME_LOAD ->
+          Constants.REPORT_LOAD_STEP_FORMAT.formatted(
+              Constants.PERFORMANCE_VIRTUAL_USERS,
+              Constants.LOAD_RAMP_DURATION_SECONDS,
+              target,
+              Constants.LOAD_REQUESTS_PER_USER);
+      case Constants.SCENARIO_NAME_SPIKE ->
+          Constants.REPORT_SPIKE_STEP_FORMAT.formatted(
+              Constants.PERFORMANCE_VIRTUAL_USERS, target, Constants.SPIKE_REQUESTS_PER_USER);
+      default ->
+          throw new IllegalArgumentException(
+              Constants.REPORT_UNSUPPORTED_SCENARIO_ERROR.formatted(result.name()));
+    };
+  }
+
+  private static String configuredValue(String property, String environmentVariable) {
+    String value = System.getProperty(property);
+    return value == null || value.isBlank() ? System.getenv(environmentVariable) : value;
   }
 
   private record SimulationResult(

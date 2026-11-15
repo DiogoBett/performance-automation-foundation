@@ -105,10 +105,11 @@ public final class Report {
 
   private static void writeCucumberReport(List<SimulationResult> results, Path reportFile)
       throws IOException {
-    List<String> scenarios = new ArrayList<>();
+    List<String> features = new ArrayList<>();
 
     for (SimulationResult result : results) {
       long durationNanos = Math.multiplyExact(result.stop() - result.start(), 1_000_000L);
+      String featureId = result.name().toLowerCase(Locale.ROOT);
       String failureMessage =
           result.status().equals(Constants.REPORT_STATUS_FAILED)
               ? Constants.REPORT_ERROR_MESSAGE_FIELD_FORMAT.formatted(
@@ -116,28 +117,26 @@ public final class Report {
                   Constants.REPORT_CUCUMBER_FAILURE_MESSAGE_FORMAT.formatted(
                       result.name(), Constants.REPORT_FAILURE_MESSAGE))
               : Constants.REPORT_EMPTY_STRING;
-      scenarios.add(
+      String scenario =
           Constants.REPORT_CUCUMBER_SCENARIO_TEMPLATE.formatted(
               Constants.REPORT_SCENARIO_TYPE,
               result.name(),
-              Constants.REPORT_FEATURE_ID
-                  + Constants.REPORT_FEATURE_ID_SEPARATOR
-                  + result.name().toLowerCase(Locale.ROOT),
+              featureId + Constants.REPORT_FEATURE_ID_SEPARATOR + featureId,
               Instant.ofEpochMilli(result.start()),
               Constants.REPORT_STEP_NAME_FORMAT.formatted(result.name()),
               result.status(),
               durationNanos,
-              failureMessage));
+              failureMessage);
+      features.add(
+          Constants.REPORT_CUCUMBER_FEATURE_TEMPLATE.formatted(
+              result.name(), featureId + Constants.REPORT_FEATURE_URI_SUFFIX, featureId, scenario));
     }
 
     Files.createDirectories(reportFile.toAbsolutePath().getParent());
     Files.writeString(
         reportFile,
-        Constants.REPORT_CUCUMBER_FEATURE_TEMPLATE.formatted(
-            Constants.REPORT_FEATURE_NAME,
-            Constants.REPORT_FEATURE_URI,
-            Constants.REPORT_FEATURE_ID,
-            String.join(Constants.REPORT_CUCUMBER_SCENARIO_SEPARATOR, scenarios)),
+        Constants.REPORT_CUCUMBER_REPORT_TEMPLATE.formatted(
+            String.join(Constants.REPORT_CUCUMBER_FEATURE_SEPARATOR, features)),
         StandardCharsets.UTF_8);
   }
 

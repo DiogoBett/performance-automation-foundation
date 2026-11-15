@@ -45,14 +45,12 @@ public final class Constants {
   public static final String REPORT_STATUS_FAILED = "failed";
   public static final String REPORT_RESULT_FILE_SUFFIX = "-result.json";
   public static final String REPORT_EMPTY_STRING = "";
-  public static final String REPORT_CUCUMBER_SCENARIO_SEPARATOR = ",\n";
+  public static final String REPORT_CUCUMBER_FEATURE_SEPARATOR = ",\n";
   public static final List<String> REPORT_SIMULATIONS =
       List.of("GenericSmokeSimulation", "GenericLoadSimulation", "GenericSpikeSimulation");
   public static final List<String> REPORT_SCENARIO_NAMES =
       List.of(SCENARIO_NAME_SMOKE, SCENARIO_NAME_LOAD, SCENARIO_NAME_SPIKE);
-  public static final String REPORT_FEATURE_NAME = "Performance Scenarios";
-  public static final String REPORT_FEATURE_URI = "performance-scenarios.feature";
-  public static final String REPORT_FEATURE_ID = "performance-scenarios";
+  public static final String REPORT_FEATURE_URI_SUFFIX = ".feature";
   public static final String REPORT_SCENARIO_TYPE = "scenario";
   public static final String REPORT_STEP_NAME_FORMAT = "Gatling %s simulation";
   public static final String REPORT_FAILURE_MESSAGE =
@@ -98,15 +96,19 @@ public final class Constants {
       """;
   public static final String REPORT_CUCUMBER_FEATURE_TEMPLATE =
       """
-      [
-        {
-          "name": "%s",
-          "uri": "%s",
-          "id": "%s",
-          "elements": [
+      {
+        "name": "%s",
+        "uri": "%s",
+        "id": "%s",
+        "elements": [
       %s
-          ]
-        }
+        ]
+      }
+      """;
+  public static final String REPORT_CUCUMBER_REPORT_TEMPLATE =
+      """
+      [
+      %s
       ]
       """;
   public static final String REPORT_CUCUMBER_SCENARIO_TEMPLATE =
